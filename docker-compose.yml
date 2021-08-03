@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+  postgre_sql:
+    build:
+      context: .
+      dockerfile: .docker/postgres/Dockerfile
+    user: 1000:1000
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER?Please set POSTGRES_USER in .env file}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Please set POSTGRES_PASSWORD in .env file}
+      - POSTGRES_DB=${POSTGRES_DB?Please set POSTGRES_DB in .env file}
+      - POSTGRES_PORT=${POSTGRES_PORT?Please set POSTGRES_PORT in .env file}
+    volumes:
+      - ./.docker/cache/postgre_sql/:/var/lib/postgresql/data
+    restart: on-failure
+    tty: true
+    networks:
+      store_network:
+        ipv4_address: 170.25.0.5
+
+  webapp:
+    build:
+      context: .
+      dockerfile: .docker/apache_php/Dockerfile
+    depends_on:
+      - postgre_sql
+    restart: on-failure
+    tty: true
+    networks:
+      store_network:
+        ipv4_address: 170.25.0.9
+    volumes:
+      - ./src/:/var/www/html/
+      - ./.docker/cache/log/:/var/log/
+
+networks:
+  store_network:
+    name: store_network
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 170.25.0.0/24
